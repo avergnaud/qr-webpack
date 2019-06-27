@@ -1,6 +1,3 @@
-? TODO
-https://github.com/webpack/webpack/tree/master/examples/web-worker
-
 # jsqr webpack
 
 see [https://github.com/cozmo/jsQR](https://github.com/cozmo/jsQR)
