@@ -1,6 +1,7 @@
 import "./style.css";
-import jsQR from "jsqr";
+var Worker = require("worker-loader?name=worker.js!./worker");
 
+var worker = new Worker;
 var video = document.createElement("video");
 var canvasElement = document.getElementById("canvas");
 var canvas = canvasElement.getContext("2d");
@@ -9,12 +10,12 @@ var outputContainer = document.getElementById("output");
 var outputMessage = document.getElementById("outputMessage");
 var outputData = document.getElementById("outputData");
 
-function drawLine(begin, end, color) {
+function drawLine(begin, end) {
   canvas.beginPath();
   canvas.moveTo(begin.x, begin.y);
   canvas.lineTo(end.x, end.y);
   canvas.lineWidth = 4;
-  canvas.strokeStyle = color;
+  canvas.strokeStyle = "#FF3B58";
   canvas.stroke();
 }
 
@@ -28,6 +29,35 @@ navigator.mediaDevices
     /* https://developer.mozilla.org/fr/docs/Web/API/Window/requestAnimationFrame */
     requestAnimationFrame(tick);
   });
+
+  worker.onmessage = function(e) {
+    var code = e.data;
+    if (code) {
+      drawLine(
+        code.location.topLeftCorner,
+        code.location.topRightCorner
+      );
+      drawLine(
+        code.location.topRightCorner,
+        code.location.bottomRightCorner
+      );
+      drawLine(
+        code.location.bottomRightCorner,
+        code.location.bottomLeftCorner
+      );
+      drawLine(
+        code.location.bottomLeftCorner,
+        code.location.topLeftCorner
+      );
+      outputMessage.hidden = true;
+      outputData.parentElement.hidden = false;
+      outputData.innerText = code.data;
+    } else {
+      outputMessage.hidden = false;
+      outputData.parentElement.hidden = true;
+      requestAnimationFrame(tick);
+    }
+  };
 
 function tick() {
   loadingMessage.innerText = "⌛ Loading video...";
@@ -46,38 +76,12 @@ function tick() {
       canvasElement.width,
       canvasElement.height
     );
-    var code = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: "dontInvert"
-    });
-    if (code) {
-      drawLine(
-        code.location.topLeftCorner,
-        code.location.topRightCorner,
-        "#FF3B58"
-      );
-      drawLine(
-        code.location.topRightCorner,
-        code.location.bottomRightCorner,
-        "#FF3B58"
-      );
-      drawLine(
-        code.location.bottomRightCorner,
-        code.location.bottomLeftCorner,
-        "#FF3B58"
-      );
-      drawLine(
-        code.location.bottomLeftCorner,
-        code.location.topLeftCorner,
-        "#FF3B58"
-      );
-      outputMessage.hidden = true;
-      outputData.parentElement.hidden = false;
-      outputData.innerText = code.data;
-    } else {
-      outputMessage.hidden = false;
-      outputData.parentElement.hidden = true;
-    }
+    worker.postMessage(imageData);
+  } else {
+    /* https://developer.mozilla.org/fr/docs/Web/API/Window/requestAnimationFrame */
+    requestAnimationFrame(tick);
   }
-  /* https://developer.mozilla.org/fr/docs/Web/API/Window/requestAnimationFrame */
-  requestAnimationFrame(tick);
 }
+
+
+
